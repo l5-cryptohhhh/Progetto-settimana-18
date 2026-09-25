@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+/*
+ * Brand identity Autoven.
+ *   Rosso (accento)     #E63946
+ *   Nero (principale)   #0D0D0D
+ *   Grigio (secondario) #6B6B6B
+ *   Bianco (sfondo)     #F5F5F5
+ *   Carattere: Montserrat. Bold per titoli ed elementi principali,
+ *   Medium per sottotitoli e testi di supporto, Regular per i paragrafi.
+ *
+ * Come nel sito di riferimento: testata, apertura e piede sono sempre neri,
+ * il contenuto sta sul bianco. Il tema scuro del sistema porta anche il
+ * contenuto sul nero, restando dentro la stessa palette.
+ * Il tema non viene salvato nel browser: la Cookie Policy dichiara solo il token.
+ *
+ * Forme: bottoni a pillola, schede e campi con angoli da 8px, etichette da 4px.
+ */
+:root {
+  --rosso: #e63946;
+  --rosso-scuro: #c92a37;
+  --nero: #0d0d0d;
+  --nero-2: #161616;
+  --grigio: #6b6b6b;
+  --bianco: #f5f5f5;
+
+  --sfondo: var(--bianco);
+  --superficie: #ffffff;
+  --superficie-2: #ececec;
+  --testo: var(--nero);
+  --testo-2: var(--grigio);
+  --linea: #e2e2e2;
+  --accento: var(--rosso);
+  --accento-forte: var(--rosso-scuro);
+  --accento-testo: #ffffff;
+  --accento-tenue: #fde8ea;
+  --pericolo: #c92a37;
+  --pericolo-tenue: #fde8ea;
+  --ok: #1f7a4d;
+  --ok-tenue: #e6f4ec;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sfondo: var(--nero);
+    --superficie: var(--nero-2);
+    --superficie-2: #232323;
+    --testo: var(--bianco);
+    /* Il grigio di marca sul nero non si legge abbastanza: stesso tono, più chiaro. */
+    --testo-2: #9a9a9a;
+    --linea: #2a2a2a;
+    --accento-tenue: #2a1114;
+    --pericolo: #f0616d;
+    --pericolo-tenue: #2a1114;
+    --ok: #4ade80;
+    --ok-tenue: #0f2419;
+  }
+}
+
+@theme static {
+  --font-sans: "Montserrat Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-rosso: var(--rosso);
+  --color-nero: var(--nero);
+  --color-nero-2: var(--nero-2);
+  --color-grigio: var(--grigio);
+  --color-bianco: var(--bianco);
+
+  --color-sfondo: var(--sfondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-testo: var(--testo);
+  --color-testo-2: var(--testo-2);
+  --color-linea: var(--linea);
+  --color-accento: var(--accento);
+  --color-accento-forte: var(--accento-forte);
+  --color-accento-testo: var(--accento-testo);
+  --color-accento-tenue: var(--accento-tenue);
+  --color-pericolo: var(--pericolo);
+  --color-pericolo-tenue: var(--pericolo-tenue);
+  --color-ok: var(--ok);
+  --color-ok-tenue: var(--ok-tenue);
+
+  --ease-molla: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  background: var(--sfondo);
+  color: var(--testo);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--sfondo);
+  font-family: var(--font-sans);
+}
+
+/* Prezzi, chilometri e anni in colonna: Montserrat con le cifre a larghezza fissa. */
+.cifre {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--rosso);
+  outline-offset: 2px;
+}
+
+/* Scheletro di caricamento: una luce che passa, spenta se l'utente chiede meno movimento. */
+.scheletro {
+  background: linear-gradient(90deg, var(--superficie-2) 0%, var(--linea) 50%, var(--superficie-2) 100%);
+  background-size: 200% 100%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .scheletro {
+    animation: luce 1.4s ease-in-out infinite;
+  }
+}
+@keyframes luce {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
