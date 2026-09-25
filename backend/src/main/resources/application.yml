@@ -1,0 +1,93 @@
+spring:
+  application:
+    name: salone-auto
+
+  # In locale i segreti stanno in backend/.env, escluso dal .gitignore.
+  # "optional" vuol dire che se il file non c'e' (su Render, nella build Docker)
+  # si va avanti con le variabili d'ambiente vere. Due percorsi perche' IntelliJ
+  # puo' partire dalla radice del progetto invece che da backend/.
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:backend/.env[.properties]
+
+  # In locale valgono questi valori. Su Render li sovrascrive DatabaseUrl.sistema(),
+  # che legge DATABASE_URL e la riscrive in forma jdbc dentro le system properties.
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/salone_auto}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Europe/Rome
+
+  # MAIL_USERNAME e MAIL_PASSWORD non hanno un valore di ripiego apposta:
+  # la password per le app di Gmail non deve stare in questo file, e se manca
+  # e' giusto che il server non parta invece di partire mezzo rotto.
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+  thymeleaf:
+    cache: true
+
+app:
+  jwt:
+    # Stessa storia: nessun valore di ripiego per il segreto di firma.
+    secret: ${JWT_SECRET}
+    durata-ore: ${JWT_DURATA_ORE:12}
+  admin:
+    email: ${ADMIN_EMAIL:admin@salone.it}
+    nome: ${ADMIN_NOME:Amministratore}
+    password: ${ADMIN_PASSWORD}
+  frontend:
+    # L'indirizzo esatto del frontend, quello che finisce in Access-Control-Allow-Origin
+    # e dentro i link delle mail.
+    url: ${ALLOWED_ORIGIN:http://localhost:5173}
+  mail:
+    mittente: ${MAIL_USERNAME}
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+  health:
+    # Senza questo l'actuator apre una connessione a Gmail a ogni controllo e,
+    # se l'SMTP non risponde, /actuator/health torna 503 e Render si convince
+    # che il servizio sia morto. Le mail partono in asincrono e il sito funziona
+    # lo stesso: lo stato di Gmail non decide se l'applicazione e' viva.
+    mail:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    org.example.progettosettimana18: INFO

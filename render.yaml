@@ -1,0 +1,73 @@
+# Blueprint di Render: un database, il backend in Docker e il frontend statico.
+#
+# Le chiavi segrete NON stanno qui. Tutte quelle con "sync: false" vanno
+# scritte a mano dalla dashboard di Render, servizio per servizio: in questo
+# modo il file puo' stare nella repository senza portarsi dietro niente.
+
+databases:
+  - name: salone-auto-db
+    databaseName: salone_auto
+    user: salone
+    plan: free
+    # Stessa regione del backend, altrimenti i due servizi non si parlano
+    # sulla rete interna e la connessione passa da internet.
+    region: frankfurt
+
+services:
+  # ---------- backend ----------
+  - type: web
+    name: salone-auto-backend
+    runtime: docker
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    # Deve restare pubblico, altrimenti Render non riesce a controllare il servizio.
+    healthCheckPath: /actuator/health
+    envVars:
+      # L'unica che si compila da sola: Render ci mette la stringa di connessione
+      # in formato postgresql://..., e DatabaseUrl.java la traduce in jdbc.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: salone-auto-db
+          property: connectionString
+
+      # Chiave di firma dei JWT. Almeno 32 caratteri, altrimenti HS256 non parte.
+      # Se ne genera una con: openssl rand -base64 48
+      - key: JWT_SECRET
+        sync: false
+
+      # Il primo amministratore, creato all'avvio se non esiste gia'.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+      # Gmail: MAIL_PASSWORD e' una password per le app, non quella dell'account.
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+
+      # L'indirizzo esatto del frontend: finisce in Access-Control-Allow-Origin
+      # e dentro i link delle mail. Niente asterischi e niente barra finale.
+      - key: ALLOWED_ORIGIN
+        sync: false
+
+  # ---------- frontend ----------
+  - type: web
+    name: salone-auto-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      # L'indirizzo del backend, quello che legge api.js.
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      # Le rotte le gestisce React: tutto quello che non e' un file torna index.html.
+      # Senza questa riga i link delle mail (/auto/:id, /disattiva-avviso/:token) darebbero 404.
+      - type: rewrite
+        source: /*
+        destination: /index.html
