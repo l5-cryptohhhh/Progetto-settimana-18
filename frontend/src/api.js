@@ -18,22 +18,63 @@ export class ErroreApi extends Error {
   }
 }
 
+/*
+ * Su Render il backend gratuito si addormenta dopo 15 minuti e per risvegliarsi
+ * può metterci più di un minuto: nel frattempo le richieste restano appese o
+ * tornano 502/503/504. Le letture (GET) allora riprovano da sole; le scritture
+ * no, perché ripetere un cambio di prezzo o un avviso potrebbe farlo due volte.
+ * Layout ascolta i due eventi e mostra la barra «il server si sta risvegliando».
+ */
+export const SERVER_LENTO = "server-lento";
+export const SERVER_PRONTO = "server-pronto";
+const RIPROVABILI = new Set([502, 503, 504]);
+const PAZIENZA_MS = 180_000;
+const PAUSA_MS = 4_000;
+const attendi = (ms) => new Promise((fatto) => setTimeout(fatto, ms));
+
 async function chiama(rotta, opzioni = {}) {
   const token = leggiToken();
+  const lettura = !opzioni.method || opzioni.method === "GET";
+  const scadenza = Date.now() + PAZIENZA_MS;
+
+  // Se dopo qualche secondo non ha ancora risposto, quasi sempre si sta risvegliando.
+  let lento = false;
+  const segnala = () => {
+    if (!lento) {
+      lento = true;
+      window.dispatchEvent(new Event(SERVER_LENTO));
+    }
+  };
+  const timer = setTimeout(segnala, PAUSA_MS);
 
   let risposta;
   try {
-    risposta = await fetch(BASE + rotta, {
-      ...opzioni,
-      headers: {
-        ...(opzioni.corpo !== undefined ? { "Content-Type": "application/json" } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...opzioni.headers,
-      },
-      body: opzioni.corpo !== undefined ? JSON.stringify(opzioni.corpo) : undefined,
-    });
-  } catch {
-    // Su Render il backend gratuito si addormenta: la prima richiesta può non arrivare.
+    for (;;) {
+      try {
+        risposta = await fetch(BASE + rotta, {
+          ...opzioni,
+          headers: {
+            ...(opzioni.corpo !== undefined ? { "Content-Type": "application/json" } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...opzioni.headers,
+          },
+          body: opzioni.corpo !== undefined ? JSON.stringify(opzioni.corpo) : undefined,
+        });
+      } catch {
+        risposta = null;
+      }
+
+      const daRifare = risposta === null || (lettura && RIPROVABILI.has(risposta.status));
+      if (!daRifare || !lettura || Date.now() > scadenza) break;
+      segnala();
+      await attendi(PAUSA_MS);
+    }
+  } finally {
+    clearTimeout(timer);
+    if (lento) window.dispatchEvent(new Event(SERVER_PRONTO));
+  }
+
+  if (risposta === null) {
     throw new ErroreApi(0, "Il server non risponde. Se si sta risvegliando ci mette un minuto: riprova tra poco.");
   }
 

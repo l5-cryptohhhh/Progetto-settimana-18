@@ -1,7 +1,8 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { MagnifyingGlass, SignOut } from "@phosphor-icons/react";
 import { useAuth } from "../auth";
+import { SERVER_LENTO, SERVER_PRONTO } from "../api";
 import { LinkBottone } from "./ui";
 import { Logo, Silhouette } from "./Logo";
 
@@ -16,6 +17,19 @@ export default function Layout() {
   const { utente, admin, esci, pronto } = useAuth();
   const { pathname } = useLocation();
   const naviga = useNavigate();
+
+  // Quante richieste stanno aspettando un server che si risveglia: finché ce n'è una, la barra resta.
+  const [inAttesa, setInAttesa] = useState(0);
+  useEffect(() => {
+    const lento = () => setInAttesa((n) => n + 1);
+    const pronto = () => setInAttesa((n) => Math.max(0, n - 1));
+    window.addEventListener(SERVER_LENTO, lento);
+    window.addEventListener(SERVER_PRONTO, pronto);
+    return () => {
+      window.removeEventListener(SERVER_LENTO, lento);
+      window.removeEventListener(SERVER_PRONTO, pronto);
+    };
+  }, []);
 
   // Cambiando pagina si riparte dall'alto, come su un sito normale.
   useEffect(() => {
@@ -72,6 +86,19 @@ export default function Layout() {
             )}
           </nav>
         </div>
+        {inAttesa > 0 && (
+          <div role="status" className="border-t border-white/10 bg-nero-2 text-white">
+            <p className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 text-[13px] md:px-8">
+              <span className="relative flex size-2 shrink-0">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-rosso opacity-75 motion-safe:animate-ping" />
+                <span className="relative inline-flex size-2 rounded-full bg-rosso" />
+              </span>
+              <span>
+                Il server si sta risvegliando: sul piano gratuito può volerci fino a un minuto. <span className="text-white/60">La pagina si aggiorna da sola.</span>
+              </span>
+            </p>
+          </div>
+        )}
       </header>
 
       <main className="flex-1">
